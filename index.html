@@ -27,6 +27,10 @@
   --land: #355f69;
   --land-sel: #5a8c96;
   --leaf: #63ad6c;
+  --wood: #9b6a3c;
+  --duck: #ffd84d;
+  --scarf: #e3584b;
+  --water: #2f7c88;
   --scrim: rgba(5, 18, 22, 0.74);
   --f-display: "Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --f-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -194,8 +198,8 @@ input[type="text"] {
   border-bottom: 3px solid transparent; margin-bottom: -1px;
 }
 .tabs button[aria-selected="true"] { color: var(--yuzu); border-bottom-color: var(--yuzu); }
-.lines { padding: 14px 20px; display: grid; align-content: start; gap: 10px; overflow: auto; min-height: 0; flex: 1 1 auto; }
-.line { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; align-items: center; }
+.lines { padding: 14px 20px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; overflow: auto; min-height: 0; flex: 1 1 auto; }
+.line { min-width: 0; display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; align-items: center; }
 .line > span { font-size: 12px; color: var(--mist-dim); letter-spacing: .03em; }
 .chain { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 3px 2px; }
 .chain .arrow { color: var(--line); flex: none; font-size: 14px; }
@@ -210,7 +214,13 @@ input[type="text"] {
 .trait[data-state="owned"] small { color: var(--ink); opacity: .7; }
 .trait[data-state="locked"] { opacity: .45; }
 .trait[aria-current="true"] { box-shadow: 0 0 0 3px var(--mist); }
-.detail { border-top: 1px solid var(--line); padding: 14px 20px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: end; }
+.detail { border-top: 1px solid var(--line); padding: 14px 20px 18px; display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; }
+.detail > div { min-width: 0; }
+.portrait {
+  display: block; width: 220px; height: 164px; border-radius: 16px;
+  background: radial-gradient(70% 70% at 50% 60%, var(--pond-2), var(--ink));
+}
+.portrait.big { width: min(300px, 86%); height: 210px; margin: 0 auto 10px; }
 .detail h3 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
 .detail p { margin: 2px 0 6px; color: var(--mist-dim); font-size: 14px; max-width: 46em; }
 .detail .chips { margin: 0; }
@@ -246,7 +256,9 @@ input[type="text"] {
 }
 @media (max-width: 560px) {
   .meters { grid-template-columns: 1fr; gap: 6px; }
-  .detail { grid-template-columns: 1fr; }
+  .detail { grid-template-columns: 130px minmax(0, 1fr); }
+  .portrait { width: 130px; height: 108px; }
+  #detailBuy { grid-column: 1 / -1; }
   .line { grid-template-columns: 1fr; gap: 4px; }
 }
 
@@ -273,6 +285,8 @@ input[type="text"] {
   #evoScreen { padding: 0; place-items: stretch; }
   .evo { max-width: none; height: 100%; max-height: none; border-radius: 0; border: 0; }
   .meters { padding-block: 6px; }
+  .portrait { width: 110px; height: 84px; }
+  .portrait.big { height: 150px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -409,24 +423,18 @@ input[type="text"] {
     </div>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="lines" id="lines"></div>
-    <div class="detail" id="detail"></div>
+    <div class="detail" id="detail">
+      <canvas class="portrait" id="evoCapy" aria-hidden="true"></canvas>
+      <div id="detailInfo"></div>
+      <div id="detailBuy"></div>
+    </div>
   </div>
 </div>
 
 <!-- ending -->
 <div class="overlay" id="endScreen" hidden>
   <div class="panel end">
-    <svg class="hero-capy" viewBox="0 0 240 160" aria-hidden="true">
-      <ellipse cx="142" cy="104" rx="80" ry="40" class="f-fur"/>
-      <rect x="34" y="56" width="92" height="66" rx="30" class="f-fur"/>
-      <rect x="26" y="82" width="50" height="40" rx="18" class="f-furd"/>
-      <ellipse cx="40" cy="92" rx="3" ry="5" class="f-ink"/>
-      <path d="M74 76 q7 -6 14 0" class="s-ink" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-      <ellipse cx="108" cy="58" rx="9" ry="7" class="f-furd"/>
-      <circle cx="74" cy="44" r="15" class="f-yuzu"/>
-      <ellipse cx="83" cy="28" rx="7" ry="3.5" transform="rotate(-30 83 28)" class="f-leaf"/>
-      <path d="M0 114 q20 -8 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 V160 H0 Z" class="f-water"/>
-    </svg>
+    <canvas class="portrait big" id="endCapy" aria-hidden="true"></canvas>
     <h1 id="endTitle"></h1>
     <p class="lede" id="endText"></p>
     <div class="stats" id="endStats"></div>
@@ -441,7 +449,7 @@ const $ = s => document.querySelector(s);
 const TAU = Math.PI * 2;
 const rs = getComputedStyle(document.documentElement);
 const COL = {};
-for (const k of ['ink','pond','pond-2','line','mist','mist-dim','fur','fur-dark','yuzu','yuzu-deep','blush','serious','land','land-sel','leaf']) {
+for (const k of ['ink','pond','pond-2','line','mist','mist-dim','fur','fur-dark','yuzu','yuzu-deep','blush','serious','land','land-sel','leaf','wood','duck','scarf','water']) {
   COL[k] = rs.getPropertyValue('--' + k).trim();
 }
 
@@ -864,6 +872,244 @@ function yuzuIcon(x, y, r, kind) {
     ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.3, r * 0.22, 0, TAU); ctx.fill();
   }
 }
+// tiny side-view capybara for planes and tubs; dir = 1 faces right
+function capyRider(x, y, s, dir) {
+  ctx.fillStyle = COL.fur;
+  ctx.beginPath(); ctx.ellipse(x - dir * s * 0.2, y, s * 0.75, s * 0.48, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x + dir * s * 0.55, y - s * 0.25, s * 0.45, s * 0.38, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = COL['fur-dark'];
+  ctx.beginPath(); ctx.arc(x + dir * s * 0.88, y - s * 0.15, s * 0.22, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + dir * s * 0.32, y - s * 0.6, s * 0.14, 0, TAU); ctx.fill();
+  ctx.fillStyle = COL.ink;
+  ctx.beginPath(); ctx.arc(x + dir * s * 0.62, y - s * 0.36, Math.max(0.6, s * 0.08), 0, TAU); ctx.fill();
+  ctx.fillStyle = COL.yuzu;
+  ctx.beginPath(); ctx.arc(x + dir * s * 0.5, y - s * 0.74, s * 0.22, 0, TAU); ctx.fill();
+}
+
+// ---------- capybara portrait: every trait shows up on the capybara ----------
+// head items stack in the order they were bought, the way real capybaras tolerate things piled on them
+const HEAD_H = { yuzuhead: 24, cold2: 20, sea1: 18, air1: 12, heat2: 14, friends: 24, bath: 10 };
+const FRONT_SLOTS = [16, 224, 38, 202, 60, 180, 82, 158, 104, 136];
+const FRONT_IDS = ['food1', 'food2', 'meme1', 'rich1', 'rich2', 'arid1', 'arid2', 'nowork', 'noalarm', 'slow'];
+let hopAt = 0;
+
+function drawPortrait(cv, owned, preview, now) {
+  const r = cv.getBoundingClientRect();
+  if (!r.width) return;
+  const dp = Math.min(2, window.devicePixelRatio || 1);
+  const W = Math.round(r.width * dp), H = Math.round(r.height * dp);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const c = cv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, H);
+
+  const ghost = preview && !owned.includes(preview) ? preview : null;
+  const list = ghost ? [...owned, ghost] : owned;
+  const has = id => list.includes(id);
+  const alpha = id => (id === ghost ? 0.4 : 1);
+  const t = reduced ? 0 : now;
+  const heads = list.filter(id => id in HEAD_H);
+  const stackH = heads.reduce((s, id) => s + HEAD_H[id], 0);
+  const top = Math.min(58 - stackH, 22), bottom = 162;
+  const sc = Math.min(W / 240, H / (bottom - top));
+  const hopT = (now - hopAt) / 600;
+  const hop = hopT >= 0 && hopT < 1 ? Math.sin(hopT * Math.PI) * 10 : 0;
+  c.translate((W - 240 * sc) / 2, (H - (bottom - top) * sc) / 2);
+  c.scale(sc, sc);
+  c.translate(0, -top);
+
+  const fill = (col, f) => { c.fillStyle = col; c.beginPath(); f(); c.fill(); };
+  const rr = (x, y, w, h, rad) => { if (c.roundRect) c.roundRect(x, y, w, h, rad); else c.rect(x, y, w, h); };
+  const on = (id, f) => { if (!has(id)) return; c.save(); c.globalAlpha = alpha(id); f(); c.restore(); };
+  const heart = (x, y, s) => fill(COL.blush, () => {
+    c.moveTo(x, y + s * 0.9);
+    c.bezierCurveTo(x - s * 1.4, y - s * 0.1, x - s * 0.6, y - s * 1.1, x, y - s * 0.35);
+    c.bezierCurveTo(x + s * 0.6, y - s * 1.1, x + s * 1.4, y - s * 0.1, x, y + s * 0.9);
+  });
+
+  // aura from the gene line
+  const genes = ['gene1', 'gene2', 'gene3'].filter(has);
+  genes.forEach((id, n) => on(id, () => {
+    c.strokeStyle = COL.blush; c.globalAlpha *= 0.5; c.lineWidth = 2; c.setLineDash([6, 8]); c.lineDashOffset = -t / 40 * (n % 2 ? -1 : 1);
+    c.beginPath(); c.ellipse(124, 100, 100 + n * 9, 56 + n * 7, 0, 0, TAU); c.stroke();
+  }));
+
+  // sky
+  on('ani2', () => {
+    c.strokeStyle = COL.mist; c.lineWidth = 2; c.lineCap = 'round';
+    for (const [x, y] of [[188, 30], [208, 40], [172, 42]]) {
+      const f = Math.sin(t / 250 + x) * 2;
+      c.beginPath(); c.moveTo(x - 7, y - 3 + f); c.quadraticCurveTo(x - 3, y - 4, x, y); c.quadraticCurveTo(x + 3, y - 4, x + 7, y - 3 + f); c.stroke();
+    }
+  });
+  on('pet1', () => heart(176, 62 + Math.sin(t / 400) * 2, 6));
+  on('pet2', () => { heart(196, 48 + Math.sin(t / 380 + 1) * 2, 5); heart(160, 44 + Math.sin(t / 420 + 2) * 2, 4); });
+  on('hum', () => {
+    c.fillStyle = COL.mist; c.font = '16px Jua, sans-serif'; c.textAlign = 'center';
+    c.fillText('♪', 28, 72 + Math.sin(t / 300) * 3); c.fillText('♫', 16, 56 + Math.sin(t / 340 + 1) * 3);
+  });
+
+  c.save(); c.translate(0, -hop);
+  // legs, body, back
+  if (!has('spa1')) {
+    fill(COL['fur-dark'], () => { rr(104, 120, 12, 16, 5); rr(150, 120, 12, 16, 5); });
+  }
+  fill(COL.fur, () => c.ellipse(132, 104, 56, 30, 0, 0, TAU));
+  on('heat1', () => { c.globalAlpha *= 0.55; fill(COL['fur-dark'], () => { c.ellipse(146, 94, 10, 5, 0.2, 0, TAU); c.moveTo(171, 110); c.ellipse(164, 110, 7, 4, 0, 0, TAU); c.moveTo(130, 114); c.ellipse(124, 114, 6, 4, 0, 0, TAU); }); });
+  on('ani1', () => {
+    fill(COL.serious, () => { c.ellipse(152, 70, 9, 6, -0.2, 0, TAU); c.moveTo(164.5, 64); c.arc(160, 64, 4.5, 0, TAU); });
+    fill(COL['yuzu-deep'], () => { c.moveTo(164, 63); c.lineTo(169, 65); c.lineTo(164, 66); });
+    fill(COL.ink, () => c.arc(161, 63, 1, 0, TAU));
+  });
+  // head
+  fill(COL.fur, () => rr(58, 66, 68, 50, 22));
+  fill(COL['fur-dark'], () => rr(50, 88, 40, 28, 12));
+  fill(COL['fur-dark'], () => c.ellipse(112, 68, 9, 7, 0, 0, TAU));
+  fill(COL.ink, () => c.ellipse(56, 96, 2.4, 4, 0, 0, TAU));
+  // eyes
+  c.strokeStyle = COL.ink; c.lineWidth = 3; c.lineCap = 'round';
+  if (has('meme2')) {
+    on('meme2', () => {
+      fill(COL.ink, () => { rr(72, 76, 24, 11, 4); });
+      c.strokeStyle = COL.ink; c.lineWidth = 2.5; c.beginPath(); c.moveTo(96, 80); c.lineTo(110, 76); c.stroke();
+      fill(COL.mist, () => rr(76, 78, 6, 2, 1));
+    });
+  }
+  if (!has('meme2') || ghost === 'meme2') {
+    if (has('nap')) { c.save(); c.globalAlpha = alpha('nap'); c.beginPath(); c.moveTo(77, 81); c.quadraticCurveTo(84, 86, 91, 81); c.stroke(); c.restore(); }
+    else if (has('calm')) { c.save(); c.globalAlpha = alpha('calm'); c.beginPath(); c.moveTo(78, 82); c.lineTo(91, 82); c.stroke(); c.restore(); }
+    else { fill(COL.ink, () => c.arc(84, 82, 3.4, 0, TAU)); fill(COL.mist, () => c.arc(85.2, 80.8, 1.1, 0, TAU)); }
+  }
+  on('smile', () => { c.strokeStyle = COL.ink; c.lineWidth = 2.2; c.beginPath(); c.moveTo(58, 107); c.quadraticCurveTo(65, 112, 72, 106); c.stroke(); });
+  if (has('smile') || has('hum')) { c.save(); c.globalAlpha = 0.5; fill(COL.blush, () => c.ellipse(100, 98, 8, 4.5, 0, 0, TAU)); c.restore(); }
+  on('cold1', () => {
+    fill(COL.scarf, () => { rr(114, 92, 22, 13, 6); rr(122, 102, 9, 20, 3); });
+    fill(COL.mist, () => { c.rect(124, 112, 5, 2); c.rect(124, 117, 5, 2); });
+  });
+  on('air2', () => {
+    c.strokeStyle = COL.ink; c.lineWidth = 4; c.beginPath(); c.arc(96, 86, 28, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
+    fill(COL.ink, () => rr(112, 74, 11, 16, 5)); fill(COL.yuzu, () => c.arc(117.5, 82, 2.2, 0, TAU));
+  });
+
+  // the head stack
+  let b = 68;
+  heads.forEach((id, n) => {
+    const x = 90 + (n % 2 ? 3 : -3);
+    c.save(); c.globalAlpha = alpha(id);
+    c.translate(x, b); c.rotate((n % 2 ? 1 : -1) * 0.05 + Math.sin(t / 700 + n) * 0.02); c.translate(-x, -b);
+    drawHeadItem(c, id, x, b, fill, rr);
+    c.restore();
+    b -= HEAD_H[id];
+  });
+
+  on('float', () => {
+    c.lineWidth = 9; c.strokeStyle = COL.scarf; c.beginPath(); c.ellipse(130, 118, 64, 12, 0, 0, TAU); c.stroke();
+    c.strokeStyle = COL.mist; c.setLineDash([12, 12]); c.stroke(); c.setLineDash([]);
+  });
+  c.restore(); // end hop
+
+  // water
+  on('spa1', () => {
+    c.globalAlpha *= 0.88;
+    fill(COL.water, () => {
+      c.moveTo(0, 122);
+      for (let x = 0; x <= 240; x += 20) c.quadraticCurveTo(x + 10, 116 + Math.sin(t / 500 + x) * 2, x + 20, 122);
+      c.lineTo(240, 162); c.lineTo(0, 162); c.closePath();
+    });
+    c.globalAlpha = alpha('spa1') * (0.3 + 0.2 * Math.sin(t / 600));
+    c.strokeStyle = COL.mist; c.lineWidth = 2.5; c.lineCap = 'round';
+    for (const x of [30, 196, 218]) { c.beginPath(); c.moveTo(x, 112); c.quadraticCurveTo(x - 6, 102, x, 94); c.quadraticCurveTo(x + 6, 86, x, 78); c.stroke(); }
+  });
+  on('spa2', () => {
+    for (const [x, y] of [[34, 128], [180, 132], [206, 124]]) {
+      fill(COL.yuzu, () => c.arc(x, y + Math.sin(t / 450 + x) * 1.5, 5.5, 0, TAU));
+    }
+  });
+  on('sea2', () => fill(COL.mist, () => { const y = 136 + Math.sin(t / 500) * 1.5; c.moveTo(196, y); c.lineTo(226, y); c.lineTo(220, y + 7); c.lineTo(202, y + 7); c.closePath(); c.moveTo(211, y - 14); c.lineTo(211, y); c.lineTo(222, y); c.closePath(); }));
+
+  // things piled in front
+  list.filter(id => FRONT_IDS.includes(id)).forEach((id, n) => {
+    c.save(); c.globalAlpha = alpha(id);
+    drawFrontItem(c, id, FRONT_SLOTS[n % FRONT_SLOTS.length], 160, fill, rr, t);
+    c.restore();
+  });
+
+  // floating text
+  c.font = '13px Jua, sans-serif'; c.textAlign = 'left';
+  on('nap', () => { c.fillStyle = COL.mist; const z = (t / 900) % 1; c.globalAlpha *= 1 - z; c.fillText('z', 40, 64 - z * 14); c.font = '17px Jua, sans-serif'; c.fillText('Z', 28, 52 - z * 14); });
+  on('yawn', () => { c.fillStyle = COL['mist-dim']; c.fillText('하암~', 4, 122); });
+}
+
+function drawHeadItem(c, id, x, b, fill, rr) {
+  if (id === 'yuzuhead') {
+    fill(COL.yuzu, () => c.arc(x, b - 11, 11.5, 0, TAU));
+    fill(COL.leaf, () => c.ellipse(x + 6, b - 22, 6.5, 3, -0.5, 0, TAU));
+  } else if (id === 'cold2') {
+    fill(COL.scarf, () => c.arc(x, b, 20, Math.PI, 0));
+    fill(COL.mist, () => { rr(x - 21, b - 5, 42, 6, 3); c.moveTo(x + 5, b - 22); c.arc(x, b - 22, 5, 0, TAU); });
+  } else if (id === 'sea1') {
+    fill(COL.ink, () => c.ellipse(x, b - 3, 23, 4, 0, 0, TAU));
+    fill(COL.mist, () => rr(x - 15, b - 18, 30, 15, 5));
+    fill(COL.ink, () => c.rect(x - 15, b - 8, 30, 4));
+    fill(COL.yuzu, () => c.arc(x, b - 13, 3, 0, TAU));
+  } else if (id === 'air1') {
+    fill(COL.wood, () => rr(x - 22, b - 8, 44, 5, 2));
+    for (const dx of [-8, 8]) {
+      fill(COL.serious, () => c.arc(x + dx, b - 6, 6, 0, TAU));
+      c.strokeStyle = COL.wood; c.lineWidth = 2; c.beginPath(); c.arc(x + dx, b - 6, 6, 0, TAU); c.stroke();
+    }
+  } else if (id === 'heat2') {
+    fill(COL.leaf, () => c.ellipse(x, b - 7, 32, 7, -0.08, 0, TAU));
+    c.strokeStyle = COL.ink; c.globalAlpha *= 0.35; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x - 28, b - 6); c.lineTo(x + 28, b - 9); c.stroke();
+  } else if (id === 'friends') {
+    fill(COL.duck, () => { c.ellipse(x + 3, b - 8, 13, 8, 0, 0, TAU); c.moveTo(x - 1, b - 18); c.arc(x - 8, b - 18, 7, 0, TAU); });
+    fill(COL['yuzu-deep'], () => c.ellipse(x - 16, b - 17, 4.5, 2.2, 0, 0, TAU));
+    fill(COL.ink, () => c.arc(x - 9, b - 19.5, 1.3, 0, TAU));
+  } else if (id === 'bath') {
+    fill(COL.mist, () => rr(x - 17, b - 10, 34, 10, 3));
+    fill(COL.serious, () => c.rect(x - 17, b - 6, 34, 2));
+  }
+}
+
+function drawFrontItem(c, id, x, b, fill, rr, t) {
+  if (id === 'food1') {
+    fill(COL.yuzu, () => c.arc(x, b - 7, 7, 0, TAU));
+    fill(COL.leaf, () => c.ellipse(x + 3, b - 14, 3.5, 1.8, -0.5, 0, TAU));
+  } else if (id === 'food2') {
+    fill(COL.leaf, () => { c.moveTo(x - 10, b - 2); c.arc(x, b - 2, 10, Math.PI, 0); c.closePath(); });
+    fill(COL.scarf, () => { c.moveTo(x - 8, b - 2); c.arc(x, b - 2, 8, Math.PI, 0); c.closePath(); });
+    fill(COL.ink, () => { c.arc(x - 3, b - 5, 0.9, 0, TAU); c.moveTo(x + 3.9, b - 6); c.arc(x + 3, b - 6, 0.9, 0, TAU); });
+  } else if (id === 'meme1') {
+    fill(COL.ink, () => rr(x - 6, b - 18, 12, 18, 3));
+    fill(COL.yuzu, () => rr(x - 4.5, b - 16, 9, 12, 1.5));
+    fill(COL.fur, () => c.arc(x, b - 9, 2.6, 0, TAU));
+  } else if (id === 'rich1') {
+    fill(COL.mist, () => rr(x - 6, b - 12, 12, 12, 2));
+    fill(COL['fur-dark'], () => c.ellipse(x, b - 12, 6, 1.8, 0, 0, TAU));
+    c.strokeStyle = COL.mist; c.lineWidth = 2; c.beginPath(); c.arc(x + 7, b - 6, 3, -Math.PI / 2, Math.PI / 2); c.stroke();
+  } else if (id === 'rich2') {
+    fill(COL.mist, () => rr(x - 9, b - 11, 18, 11, 1.5));
+    c.strokeStyle = COL['mist-dim']; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x - 9, b - 11); c.lineTo(x, b - 5); c.lineTo(x + 9, b - 11); c.stroke();
+    fill(COL.scarf, () => c.arc(x, b - 5, 2, 0, TAU));
+  } else if (id === 'arid1') {
+    fill(COL.leaf, () => { rr(x - 3.5, b - 20, 7, 20, 3.5); rr(x - 9, b - 14, 4, 8, 2); rr(x + 5, b - 16, 4, 8, 2); });
+  } else if (id === 'arid2') {
+    fill(COL.serious, () => c.arc(x, b - 8, 8, 0, TAU));
+    fill(COL.wood, () => rr(x - 2.5, b - 19, 5, 4, 1));
+  } else if (id === 'nowork') {
+    fill(COL['mist-dim'], () => rr(x - 12, b - 5, 24, 5, 2));
+    c.fillStyle = COL.mist; c.font = '9px Jua, sans-serif'; c.textAlign = 'center'; c.fillText('6:00', x, b - 8);
+  } else if (id === 'noalarm') {
+    fill(COL.scarf, () => { c.arc(x, b - 8, 8, 0, TAU); c.moveTo(x - 3, b - 16); c.arc(x - 6, b - 16, 3, 0, TAU); c.moveTo(x + 9, b - 16); c.arc(x + 6, b - 16, 3, 0, TAU); });
+    fill(COL.mist, () => c.arc(x, b - 8, 5.5, 0, TAU));
+    c.strokeStyle = COL.ink; c.lineWidth = 1.3; c.beginPath(); c.moveTo(x - 3, b - 12); c.lineTo(x, b - 8); c.lineTo(x - 2, b - 5); c.lineTo(x + 2, b - 3); c.stroke();
+  } else if (id === 'slow') {
+    fill(COL.blush, () => rr(x - 10, b - 4, 20, 4, 2));
+    fill(COL.wood, () => c.arc(x + 2, b - 9, 6.5, 0, TAU));
+    c.strokeStyle = COL['fur-dark']; c.lineWidth = 1.4; c.beginPath(); c.arc(x + 2, b - 9, 3, 0, Math.PI * 1.6); c.stroke();
+    c.strokeStyle = COL.blush; c.beginPath(); c.moveTo(x - 8, b - 4); c.lineTo(x - 10, b - 10 + Math.sin(t / 300)); c.stroke();
+  }
+}
+
 function routeAt(p, u) {
   const [x1, y1] = proj(...p.a), [x2, y2] = proj(...p.b);
   const lift = Math.hypot(x2 - x1, y2 - y1) * (p.type === 'air' ? 0.22 : 0.08);
@@ -929,13 +1175,30 @@ function draw(now) {
     }
     const [x2, y2] = routeAt(p, Math.min(1, u + 0.01));
     const ang = Math.atan2(y2 - y, x2 - x);
-    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-    ctx.fillStyle = p.carry ? COL.yuzu : COL.mist;
-    ctx.globalAlpha = p.carry ? 1 : 0.6;
-    ctx.beginPath();
-    if (p.type === 'air') { ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4); ctx.closePath(); }
-    else { ctx.roundRect ? ctx.roundRect(-4, -2, 8, 4, 2) : ctx.rect(-4, -2, 8, 4); }
-    ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
+    const dir = x2 < x ? -1 : 1;
+    if (p.type === 'air') {
+      const k = p.carry ? 1.6 : 1;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(k, k);
+      ctx.fillStyle = p.carry ? COL.yuzu : COL.mist;
+      ctx.globalAlpha = p.carry ? 1 : 0.6;
+      ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4); ctx.closePath(); ctx.fill();
+      ctx.restore(); ctx.globalAlpha = 1;
+      if (p.carry) capyRider(x, y - 5 + (reduced ? 0 : Math.sin(now / 180 + p.b[0]) * 0.8), coarse ? 8 : 7, dir);
+    } else if (p.carry) {
+      // a little onsen tub with a capybara soaking in it
+      const bob = reduced ? 0 : Math.sin(now / 260 + p.b[0]) * 0.8;
+      capyRider(x, y - 4 + bob, coarse ? 7 : 6, dir);
+      ctx.fillStyle = COL.wood;
+      ctx.beginPath(); ctx.moveTo(x - 8, y - 3 + bob); ctx.lineTo(x + 8, y - 3 + bob); ctx.lineTo(x + 6, y + 4 + bob); ctx.lineTo(x - 6, y + 4 + bob); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = COL.mist; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x - dir * 6, y - 8 + bob); ctx.quadraticCurveTo(x - dir * 9, y - 12 + bob, x - dir * 6, y - 15 + bob); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+      ctx.fillStyle = COL.mist; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-4, -2, 8, 4, 2) : ctx.rect(-4, -2, 8, 4); ctx.fill();
+      ctx.restore(); ctx.globalAlpha = 1;
+    }
   }
 
   // labels
@@ -1241,6 +1504,11 @@ function renderEvolve() {
   const p = document.createElement('p'); p.textContent = t.desc;
   const chips = document.createElement('div'); chips.className = 'chips';
   for (const c of fxChips(t)) { const s = document.createElement('span'); s.className = 'chip warm'; s.textContent = c; chips.append(s); }
+  if (st !== 'owned') {
+    const s = document.createElement('span'); s.className = 'chip';
+    s.textContent = '왼쪽 카피바라에 반투명하게 미리 보여요';
+    chips.append(s);
+  }
   if (st === 'locked') {
     const s = document.createElement('span'); s.className = 'chip';
     s.textContent = '먼저 필요: ' + t.req.filter(r => !G.owned.includes(r)).map(r => TRAIT[r].name).join(', ');
@@ -1252,7 +1520,8 @@ function renderEvolve() {
   buy.textContent = st === 'owned' ? '이미 진화했어요' : st === 'locked' ? '아직 잠겨 있어요' : G.yuzu < t.cost ? `유자 ${t.cost - G.yuzu}개 더 필요해요` : `유자 ${t.cost}개로 진화`;
   buy.disabled = st !== 'open' || G.yuzu < t.cost;
   buy.addEventListener('click', () => buyTrait(t));
-  $('#detail').replaceChildren(info, buy);
+  $('#detailInfo').replaceChildren(info);
+  $('#detailBuy').replaceChildren(buy);
 }
 function buyTrait(t) {
   if (traitState(t) !== 'open' || G.yuzu < t.cost) return;
@@ -1261,6 +1530,7 @@ function buyTrait(t) {
   computeStats();
   if (t.fx.cure) { G.cure = Math.max(0, G.cure - 0.06); G.cureMult *= 0.85; }
   news(`${G.name}이(가) '${t.name}'(으)로 진화했어요`);
+  hopAt = performance.now();
   updateHUD(); renderEvolve();
 }
 $('#evolveBtn').addEventListener('click', openEvolve);
@@ -1334,6 +1604,8 @@ function frame(now) {
   for (const f of G.floats) f.age += dt;
   G.floats = G.floats.filter(f => f.age < 1.2);
   draw(now);
+  if (!$('#evoScreen').hidden && curTrait) drawPortrait($('#evoCapy'), G.owned, curTrait.id, now);
+  if (!$('#endScreen').hidden) drawPortrait($('#endCapy'), G.owned, null, now);
   requestAnimationFrame(frame);
 }
 
